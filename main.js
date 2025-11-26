@@ -2973,12 +2973,33 @@
     // Global callback for reCAPTCHA completion - Enhanced with all scenarios
     window.onRecaptchaSuccess = function() {
         try {
-            const form = Utils.safeQuery('form');
-            if (form) {
-                form.dispatchEvent(new CustomEvent('recaptcha-completed'));
+            // Find the form that contains the reCAPTCHA that was just completed
+            const recaptchaElements = document.querySelectorAll('.g-recaptcha');
+            let targetForm = null;
+            
+            // Find which reCAPTCHA was completed by checking for a response
+            for (const recaptchaEl of recaptchaElements) {
+                const form = recaptchaEl.closest('form');
+                if (form) {
+                    const formData = new FormData(form);
+                    const recaptchaResponse = formData.get('g-recaptcha-response');
+                    if (recaptchaResponse && recaptchaResponse.trim()) {
+                        targetForm = form;
+                        break;
+                    }
+                }
+            }
+            
+            // Fallback to first form if we can't determine which one
+            if (!targetForm) {
+                targetForm = Utils.safeQuery('form');
+            }
+            
+            if (targetForm) {
+                targetForm.dispatchEvent(new CustomEvent('recaptcha-completed'));
                 // Also trigger Alpine.js update if available
-                if (typeof Alpine !== 'undefined' && form._x_dataStack && form._x_dataStack[0]) {
-                    const formData = form._x_dataStack[0];
+                if (typeof Alpine !== 'undefined' && targetForm._x_dataStack && targetForm._x_dataStack[0]) {
+                    const formData = targetForm._x_dataStack[0];
                     if (formData && typeof formData.handleRecaptchaComplete === 'function') {
                         formData.handleRecaptchaComplete();
                     }
@@ -2992,8 +3013,22 @@
     // Global callback for reCAPTCHA expiration
     window.onRecaptchaExpired = function() {
         try {
-            const form = Utils.safeQuery('form');
-            if (form) {
+            // Find all forms with reCAPTCHA and trigger expiration on all of them
+            const recaptchaElements = document.querySelectorAll('.g-recaptcha');
+            const forms = new Set();
+            
+            recaptchaElements.forEach(recaptchaEl => {
+                const form = recaptchaEl.closest('form');
+                if (form) forms.add(form);
+            });
+            
+            // Fallback to first form if no reCAPTCHA forms found
+            if (forms.size === 0) {
+                const form = Utils.safeQuery('form');
+                if (form) forms.add(form);
+            }
+            
+            forms.forEach(form => {
                 form.dispatchEvent(new CustomEvent('recaptcha-expired'));
                 // Also trigger Alpine.js update if available
                 if (typeof Alpine !== 'undefined' && form._x_dataStack && form._x_dataStack[0]) {
@@ -3002,7 +3037,7 @@
                         formData.handleRecaptchaExpired();
                     }
                 }
-            }
+            });
         } catch (e) {
             log.warn('reCAPTCHA expired handler error:', e);
         }
@@ -3011,8 +3046,22 @@
     // Global callback for reCAPTCHA errors
     window.onRecaptchaError = function() {
         try {
-            const form = Utils.safeQuery('form');
-            if (form) {
+            // Find all forms with reCAPTCHA and trigger error on all of them
+            const recaptchaElements = document.querySelectorAll('.g-recaptcha');
+            const forms = new Set();
+            
+            recaptchaElements.forEach(recaptchaEl => {
+                const form = recaptchaEl.closest('form');
+                if (form) forms.add(form);
+            });
+            
+            // Fallback to first form if no reCAPTCHA forms found
+            if (forms.size === 0) {
+                const form = Utils.safeQuery('form');
+                if (form) forms.add(form);
+            }
+            
+            forms.forEach(form => {
                 form.dispatchEvent(new CustomEvent('recaptcha-error'));
                 // Also trigger Alpine.js update if available
                 if (typeof Alpine !== 'undefined' && form._x_dataStack && form._x_dataStack[0]) {
@@ -3021,7 +3070,7 @@
                         formData.handleRecaptchaError();
                     }
                 }
-            }
+            });
         } catch (e) {
             log.warn('reCAPTCHA error handler error:', e);
         }
