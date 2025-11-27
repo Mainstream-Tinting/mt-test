@@ -789,44 +789,9 @@
         },
 
         resizeTextarea(textarea) {
-                        try {
-                            if (!textarea) return;
-                            
-                            // CRITICAL FIX: Use CSS max-height instead of scrollHeight to prevent layout thrashing
-                            // scrollHeight forces synchronous layout recalculation - MAJOR FREEZING ISSUE
-                            // Instead, let CSS handle the height with max-height constraint
-                            
-                            // Debounce resize to prevent layout thrashing
-                            if (this._resizeTimer) clearTimeout(this._resizeTimer);
-                            this._resizeTimer = setTimeout(() => {
-                                if (!textarea) return;
-                                
-                                // Use RAF to batch with other DOM updates
-                                Utils.safeRAF(() => {
-                                    try {
-                                        // Reset height to auto to get natural height
-                                        textarea.style.height = 'auto';
-                                        
-                                        // Use requestAnimationFrame again to read after layout
-                                        Utils.safeRAF(() => {
-                                            try {
-                                                // Only read scrollHeight ONCE after reset
-                                                const scrollHeight = textarea.scrollHeight;
-                                                // Clamp between min and max
-                                                const newHeight = Math.max(120, Math.min(scrollHeight, 400));
-                                                textarea.style.height = newHeight + 'px';
-                                            } catch (e) {
-                                                log.warn('Textarea height calculation error:', e);
-                                            }
-                                        });
-                                    } catch (e) {
-                                        log.warn('Textarea resize error:', e);
-                                    }
-                                });
-                            }, 150); // Increased debounce to 150ms for better performance
-                        } catch (e) {
-                            log.warn('Textarea resize error:', e);
-            }
+                        // No-op: Using fixed height textarea for better stability
+                        // Especially important for mobile compatibility
+                        return;
         },
 
         clearErrorAfterDelay() {
