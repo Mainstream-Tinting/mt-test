@@ -880,6 +880,7 @@
 
         handleRecaptchaComplete() {
                         try {
+                            console.log('handleRecaptchaComplete called');
                             this.recaptchaCompleted = true;
                             this.recaptchaError = false;
                             // Clear any reCAPTCHA-related errors
@@ -1706,6 +1707,20 @@
 
                 // Enhanced reCAPTCHA validation
                 if (recaptchaElement) {
+                    // Debug logging
+                    console.log('reCAPTCHA Debug:', {
+                        recaptchaResponse: recaptchaResponse ? 'Present' : 'Missing',
+                        recaptchaCompleted: this.recaptchaCompleted,
+                        recaptchaError: this.recaptchaError
+                    });
+                    
+                    // If we have a response but Alpine.js flag isn't set, try to get the response directly
+                    if (recaptchaResponse && !this.recaptchaCompleted) {
+                        console.log('reCAPTCHA response exists but Alpine flag not set, forcing completion');
+                        this.recaptchaCompleted = true;
+                        this.recaptchaError = false;
+                    }
+                    
                     if (!recaptchaResponse || !this.recaptchaCompleted) {
                         this._lastErrorType = 'recaptcha';
                         this._errorHistory.push({ type: 'recaptcha', time: Date.now() });
@@ -2973,6 +2988,7 @@
     // Global callback for reCAPTCHA completion - Enhanced with all scenarios
     window.onRecaptchaSuccess = function() {
         try {
+            console.log('onRecaptchaSuccess called');
             // Find the form that contains the reCAPTCHA that was just completed
             const recaptchaElements = document.querySelectorAll('.g-recaptcha');
             let targetForm = null;
