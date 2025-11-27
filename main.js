@@ -880,7 +880,6 @@
 
         handleRecaptchaComplete() {
                         try {
-                            console.log('handleRecaptchaComplete called');
                             this.recaptchaCompleted = true;
                             this.recaptchaError = false;
                             // Clear any reCAPTCHA-related errors
@@ -1707,16 +1706,8 @@
 
                 // Enhanced reCAPTCHA validation
                 if (recaptchaElement) {
-                    // Debug logging
-                    console.log('reCAPTCHA Debug:', {
-                        recaptchaResponse: recaptchaResponse ? 'Present' : 'Missing',
-                        recaptchaCompleted: this.recaptchaCompleted,
-                        recaptchaError: this.recaptchaError
-                    });
-                    
                     // If we have a response but Alpine.js flag isn't set, try to get the response directly
                     if (recaptchaResponse && !this.recaptchaCompleted) {
-                        console.log('reCAPTCHA response exists but Alpine flag not set, forcing completion');
                         this.recaptchaCompleted = true;
                         this.recaptchaError = false;
                     }
@@ -1985,17 +1976,33 @@
                     // ERROR RESPONSE - Handle different error scenarios
                     let errorMsg = "Submission failed. Please try again.";
                     let errorType = 'server';
+                    let isFileUploadError = false;
                     
                     try {
                         const errorData = await response.json();
                         if (errorData.error) {
                             errorMsg = errorData.error;
+                            // Check if this is a file upload restriction error
+                            if (errorMsg.toLowerCase().includes('file') && 
+                                (errorMsg.toLowerCase().includes('not permitted') || 
+                                 errorMsg.toLowerCase().includes('not allowed') ||
+                                 errorMsg.toLowerCase().includes('upload'))) {
+                                isFileUploadError = true;
+                            }
                                     } else if (errorData.errors && Array.isArray(errorData.errors)) {
                             // Optimized: Use for loop instead of map for better performance
                             const errorMessages = [];
                             for (let i = 0; i < errorData.errors.length; i++) {
                                 const e = errorData.errors[i];
-                                errorMessages.push(e.message || e);
+                                const msg = e.message || e;
+                                errorMessages.push(msg);
+                                // Check if any error is about file uploads
+                                if (msg.toLowerCase().includes('file') && 
+                                    (msg.toLowerCase().includes('not permitted') || 
+                                     msg.toLowerCase().includes('not allowed') ||
+                                     msg.toLowerCase().includes('upload'))) {
+                                    isFileUploadError = true;
+                                }
                             }
                             errorMsg = errorMessages.join(", ");
                         }
@@ -2007,9 +2014,84 @@
                             errorMsg = "File size too large. Please reduce file sizes and try again.";
                         } else if (response.status === 422) {
                             errorMsg = "Invalid form data. Please check your inputs and try again.";
+                            // 422 often indicates file upload restrictions
+                            if (this.uploadedFiles && this.uploadedFiles.length > 0) {
+                                isFileUploadError = true;
+                            }
                         } else if (response.status >= 500) {
                             errorMsg = "Server error. Please try again later.";
                                         }
+                        }
+                    }
+                    
+                    // If this is a file upload error and we have files, try resubmitting without files
+                    if (isFileUploadError && this.uploadedFiles && this.uploadedFiles.length > 0) {
+                        console.log('File upload not supported, retrying without files...');
+                        
+                        // Create new FormData without files
+                        const formDataNoFiles = new FormData(form);
+                        formDataNoFiles.delete('photo'); // Remove any file fields
+                        
+                        // Add the reCAPTCHA response
+                        const recaptchaResponse = formData.get("g-recaptcha-response");
+                        if (recaptchaResponse) {
+                            formDataNoFiles.set("g-recaptcha-response", recaptchaResponse);
+                        }
+                        
+                        try {
+                            const retryResponse = await fetch("https://formspree.io/xblzkgdl", {
+                                method: "POST",
+                                body: formDataNoFiles,
+                                headers: {
+                                    'Accept': 'application/json'
+                                }
+                            });
+                            
+                            if (retryResponse && retryResponse.ok) {
+                                // SUCCESS without files
+                                this.submissionSuccess = true;
+                                
+                                // Track conversion in Google Analytics
+                                if (typeof gtag !== 'undefined') {
+                                    gtag('event', 'form_submit', {
+                                        event_category: 'engagement',
+                                        event_label: 'contact_form_no_files',
+                                        value: 1
+                                    });
+                                }
+                                
+                                // Show success message with note about files
+                                this.errorMessage = "Message sent successfully! Note: File uploads are not currently supported, but your message was received.";
+                                
+                                // Clear form and reset state
+                                this._resetSubmissionState(true);
+                                this.fileError = "";
+                                this.uploadedFiles = [];
+                                this.messageLength = 0;
+                                this._retryCount = 0;
+                                this._errorHistory = [];
+                                this._submissionAttempts = 0;
+                                
+                                try {
+                                    form.reset();
+                                    const fileInput = Utils.safeQuery('input[type="file"]', form);
+                                    if (fileInput) fileInput.value = '';
+                                    this._resetRecaptcha();
+                                    this.formTouched = false;
+                                } catch (e) {
+                                    log.warn('Form reset error:', e);
+                                }
+                                
+                                // Clear the error message after showing success briefly
+                                setTimeout(() => {
+                                    this.errorMessage = "";
+                                }, 5000);
+                                
+                                return; // Exit successfully
+                            }
+                        } catch (retryError) {
+                            console.log('Retry without files also failed:', retryError);
+                            // Fall through to show original error
                         }
                     }
                     
@@ -2988,7 +3070,6 @@
     // Global callback for reCAPTCHA completion - Enhanced with all scenarios
     window.onRecaptchaSuccess = function() {
         try {
-            console.log('onRecaptchaSuccess called');
             // Find the form that contains the reCAPTCHA that was just completed
             const recaptchaElements = document.querySelectorAll('.g-recaptcha');
             let targetForm = null;
