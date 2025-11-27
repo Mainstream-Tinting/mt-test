@@ -2537,8 +2537,8 @@
                                             spellcheck="true"
                                             autocomplete="off"
                                             aria-describedby="message-error message-help"
-                                            x-on:input="updateMessageLength(); clearErrorOnInput($event); resizeTextarea($el);"
-                                            class="w-full resize-none overflow-y-auto rounded-xl border border-gray-700/50 frosted-glass-light px-4 py-3.5 text-base text-white placeholder-gray-500 focus:border-gray-600 sm:py-3 textarea-resize transition-colors"
+                                            x-on:input="updateMessageLength(); clearErrorOnInput($event);"
+                                            class="w-full resize-none overflow-y-auto rounded-xl border border-gray-700/50 frosted-glass-light px-4 py-3.5 text-base text-white placeholder-gray-500 focus:border-gray-600 sm:py-3 textarea-resize transition-[border-color,background-color]"
                                             placeholder="Example: 2-story home, 12 west-facing windows, too hot in afternoon, want heat reduction"
                                         ></textarea>
                                         <div id="message-error" class="sr-only" role="alert"></div>
