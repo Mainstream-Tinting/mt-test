@@ -1154,8 +1154,10 @@ body.scrolling .hero-gradient-bg-home {
     }
 
     .textarea-resize {
-        min-height: 120px;
-        max-height: 400px;
+        height: 120px;
+        resize: none;
+        overflow-y: auto;
+        transition: border-color 0.2s ease, background-color 0.2s ease;
     }
 
     .cta-gradient-bg {
