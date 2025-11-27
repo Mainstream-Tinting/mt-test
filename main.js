@@ -655,6 +655,7 @@
         isSubmitting: false,
         submittedData: { name: "", message: "" },
         errorMessage: "",
+        successMessage: "",
         messageLength: 0,
         uploadedFiles: [],
         fileError: "",
@@ -724,6 +725,10 @@
             }
             if (typeof this.messageLength === 'undefined') {
                 this.messageLength = 0;
+            }
+            
+            if (typeof this.successMessage === 'undefined') {
+                this.successMessage = "";
             }
             
             log.log('=== contactForm INITIALIZED ===', { 
@@ -1914,8 +1919,12 @@
                             }
 
                             if (response && response.ok) {
-                    // SUCCESS - Reset all state
-                    this.submissionSuccess = true;
+                    // SUCCESS - Show green success message instead of full success screen
+                    const hasFiles = this.uploadedFiles && this.uploadedFiles.length > 0;
+                    this.successMessage = hasFiles ? 
+                        "Message and files sent successfully! I'll get back to you soon." : 
+                        "Message sent successfully! I'll get back to you soon.";
+                    this.errorMessage = "";
                     
                     // Track conversion in Google Analytics
                     if (typeof gtag !== 'undefined') {
@@ -1945,7 +1954,6 @@
                         field.classList.add('border-gray-700/50');
                     });
                     this._resetSubmissionState(true); // true = success
-                    this.errorMessage = "";
                     this.fileError = "";
                     this.uploadedFiles = [];
                     this.messageLength = 0;
@@ -1963,15 +1971,10 @@
                                     log.warn('Form reset error:', e);
                                 }
 
-                    this.$nextTick(() => {
-                                    try {
-                                        if (this.$el) {
-                                            Utils.safeScrollIntoView(this.$el);
-                                        }
-                                    } catch (e) {
-                                        log.warn('Scroll error:', e);
-                                    }
-                    });
+                    // Clear the success message after 8 seconds
+                    setTimeout(() => {
+                        this.successMessage = "";
+                    }, 8000);
                 } else {
                     // ERROR RESPONSE - Handle different error scenarios
                     let errorMsg = "Submission failed. Please try again.";
@@ -2048,8 +2051,9 @@
                             });
                             
                             if (retryResponse && retryResponse.ok) {
-                                // SUCCESS without files
-                                this.submissionSuccess = true;
+                                // SUCCESS without files - show green success message
+                                this.successMessage = "Message sent successfully! Note: File uploads are not currently supported, but your message was received.";
+                                this.errorMessage = "";
                                 
                                 // Track conversion in Google Analytics
                                 if (typeof gtag !== 'undefined') {
@@ -2059,9 +2063,6 @@
                                         value: 1
                                     });
                                 }
-                                
-                                // Show success message with note about files
-                                this.errorMessage = "Message sent successfully! Note: File uploads are not currently supported, but your message was received.";
                                 
                                 // Clear form and reset state
                                 this._resetSubmissionState(true);
@@ -2082,10 +2083,10 @@
                                     log.warn('Form reset error:', e);
                                 }
                                 
-                                // Clear the error message after showing success briefly
+                                // Clear the success message after 8 seconds
                                 setTimeout(() => {
-                                    this.errorMessage = "";
-                                }, 5000);
+                                    this.successMessage = "";
+                                }, 8000);
                                 
                                 return; // Exit successfully
                             }
